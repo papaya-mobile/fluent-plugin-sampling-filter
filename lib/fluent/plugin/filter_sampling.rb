@@ -1,5 +1,5 @@
 class Fluent::SamplingFilter < Fluent::Filter
-  Fluent::Plugin.register_filter('sampling_filter', self)
+  Fluent::Plugin.register_filter('sampling', self)
 
   config_param :interval, :integer
   config_param :sample_unit, :string, default: 'tag'
