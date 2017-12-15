@@ -4,6 +4,8 @@ class Fluent::SamplingFilter < Fluent::Filter
   config_param :interval, :integer
   config_param :sample_unit, :string, default: 'tag'
   config_param :minimum_rate_per_min, :integer, default: nil
+  config_param :unsampling_key, :string, default: nil 
+  config_param :unsampling_value, :array, value_type: :string, default: nil
 
   def configure(conf)
     super
@@ -49,14 +51,28 @@ class Fluent::SamplingFilter < Fluent::Filter
       end
     else
       es.each do |time,record|
+      v = record[@unsampling_key]
+      if v
+        if false == @unsampling_value.include?(v)
+          c = (@counts[t] = @counts.fetch(t, 0) + 1)
+          if c % @interval == 0
+            new_es.add(time, record.dup)
+            # reset only just before @counts[t] is to be bignum from fixnum
+            @counts[t] = 0 if c > 0x6fffffff
+          end # if c
+        else
+          new_es.add(time, record.dup)
+        end # false
+      else
         c = (@counts[t] = @counts.fetch(t, 0) + 1)
         if c % @interval == 0
           new_es.add(time, record.dup)
           # reset only just before @counts[t] is to be bignum from fixnum
           @counts[t] = 0 if c > 0x6fffffff
         end
-      end
-    end
+      end # v
+      end # es.each 
+    end # @minimum_rate_per_min
     new_es
   end
 end
